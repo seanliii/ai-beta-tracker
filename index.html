@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Beta Tracker | AI产品测试进度追踪</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; background:#0f0f23; color:#e0e0ff; min-height:100vh; }
+.container { max-width:1400px; margin:0 auto; padding:24px; }
+header { text-align:center; padding:40px 0 32px; border-bottom:1px solid rgba(100,100,255,0.15); margin-bottom:32px; }
+header h1 { font-size:2.4rem; font-weight:700; background:linear-gradient(135deg,#667eea 0%,#764ba2 50%,#f093fb 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:8px; }
+header .subtitle { color:#8892b0; font-size:1.05rem; }
+.stats-bar { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin:24px 0; }
+.stat-pill { background:rgba(100,100,255,0.08); border:1px solid rgba(100,100,255,0.15); border-radius:20px; padding:8px 20px; font-size:0.9rem; display:flex; align-items:center; gap:8px; }
+.stat-pill .num { font-weight:700; color:#a78bfa; font-size:1.1rem; }
+.controls { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:28px; padding:16px; background:rgba(20,20,40,0.6); border-radius:12px; border:1px solid rgba(100,100,255,0.1); }
+.controls input,.controls select { background:rgba(30,30,60,0.8); border:1px solid rgba(100,100,255,0.2); border-radius:8px; padding:10px 14px; color:#e0e0ff; font-size:0.9rem; outline:none; }
+.controls input { flex:1; min-width:200px; }
+.controls input::placeholder { color:#6b7280; }
+.view-toggle { display:flex; gap:4px; margin-left:auto; }
+.view-btn { background:rgba(30,30,60,0.8); border:1px solid rgba(100,100,255,0.2); color:#8892b0; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:0.85rem; transition:all 0.2s; }
+.view-btn:hover { background:rgba(100,100,255,0.15); }
+.view-btn.active { background:rgba(100,100,255,0.25); color:#a78bfa; border-color:rgba(167,139,250,0.4); }
+.grid-view { display:grid; grid-template-columns:repeat(auto-fill,minmax(380px,1fr)); gap:20px; }
+.card { background:rgba(20,20,40,0.7); border:1px solid rgba(100,100,255,0.12); border-radius:16px; padding:24px; transition:all 0.3s; cursor:pointer; position:relative; overflow:hidden; }
+.card:hover { border-color:rgba(100,100,255,0.3); transform:translateY(-2px); box-shadow:0 8px 32px rgba(100,100,255,0.1); }
+.card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+.card-title { font-size:1.2rem; font-weight:600; color:#f0f0ff; }
+.card-company { color:#8892b0; font-size:0.85rem; margin-top:4px; }
+.status-badge { padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+.status-limited_beta { background:rgba(251,191,36,0.15); color:#fbbf24; border:1px solid rgba(251,191,36,0.3); }
+.status-launching_soon { background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.3); }
+.status-public_preview { background:rgba(59,130,246,0.15); color:#3b82f6; border:1px solid rgba(59,130,246,0.3); }
+.status-launched { background:rgba(34,197,94,0.15); color:#22c55e; border:1px solid rgba(34,197,94,0.3); }
+.status-internal_alpha { background:rgba(107,114,128,0.15); color:#9ca3af; border:1px solid rgba(107,114,128,0.3); }
+.status-expanded_beta { background:rgba(168,85,247,0.15); color:#a855f7; border:1px solid rgba(168,85,247,0.3); }
+.progress-section { margin:16px 0; }
+.progress-label { display:flex; justify-content:space-between; font-size:0.8rem; color:#8892b0; margin-bottom:6px; }
+.progress-bar { height:8px; background:rgba(100,100,255,0.1); border-radius:4px; overflow:hidden; }
+.progress-fill { height:100%; border-radius:4px; transition:width 0.8s ease; background:linear-gradient(90deg,#667eea,#764ba2); }
+.progress-fill.launching_soon { background:linear-gradient(90deg,#ef4444,#f97316); }
+.progress-fill.limited_beta { background:linear-gradient(90deg,#fbbf24,#f59e0b); }
+.progress-fill.launched { background:linear-gradient(90deg,#22c55e,#10b981); }
+.progress-fill.public_preview { background:linear-gradient(90deg,#3b82f6,#06b6d4); }
+.progress-fill.expanded_beta { background:linear-gradient(90deg,#a855f7,#c084fc); }
+.features-mini { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
+.feature-tag { background:rgba(100,100,255,0.08); border:1px solid rgba(100,100,255,0.15); color:#a5b4fc; padding:3px 10px; border-radius:6px; font-size:0.75rem; }
+.card-footer { display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:14px; border-top:1px solid rgba(100,100,255,0.08); font-size:0.8rem; color:#6b7280; }
+.card-date { display:flex; align-items:center; gap:6px; }
+.card-date .label { color:#4b5563; }
+.card-date .value { color:#a5b4fc; }
+.timeline-view { display:none; }
+.timeline-view.active { display:block; }
+.timeline-item { display:flex; gap:20px; margin-bottom:24px; position:relative; }
+.timeline-item::before { content:''; position:absolute; left:15px; top:32px; bottom:-24px; width:2px; background:rgba(100,100,255,0.15); }
+.timeline-item:last-child::before { display:none; }
+.timeline-dot { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; z-index:1; border:2px solid rgba(100,100,255,0.3); }
+.timeline-dot.launching_soon { background:rgba(239,68,68,0.2); color:#ef4444; border-color:rgba(239,68,68,0.5); }
+.timeline-dot.limited_beta { background:rgba(251,191,36,0.2); color:#fbbf24; border-color:rgba(251,191,36,0.5); }
+.timeline-dot.launched { background:rgba(34,197,94,0.2); color:#22c55e; border-color:rgba(34,197,94,0.5); }
+.timeline-content { background:rgba(20,20,40,0.7); border:1px solid rgba(100,100,255,0.12); border-radius:12px; padding:20px; flex:1; cursor:pointer; transition:all 0.2s; }
+.timeline-content:hover { border-color:rgba(100,100,255,0.3); }
+.tl-header { display:flex; justify-content:space-between; align-items:flex-start; }
+.tl-title { font-size:1.1rem; font-weight:600; color:#f0f0ff; }
+.tl-company { color:#8892b0; font-size:0.85rem; }
+.table-view { display:none; width:100%; }
+.table-view.active { display:table; }
+.data-table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+.data-table th { background:rgba(20,20,40,0.8); padding:12px 16px; text-align:left; font-weight:600; color:#a5b4fc; border-bottom:2px solid rgba(100,100,255,0.2); white-space:nowrap; }
+.data-table td { padding:14px 16px; border-bottom:1px solid rgba(100,100,255,0.08); color:#e0e0ff; }
+.data-table tr { cursor:pointer; transition:background 0.2s; }
+.data-table tr:hover { background:rgba(100,100,255,0.05); }
+.data-table .td-name { font-weight:600; }
+.data-table .td-company { color:#8892b0; }
+.modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:1000; padding:20px; backdrop-filter:blur(8px); }
+.modal-overlay.active { display:flex; }
+.modal { background:#1a1a2e; border:1px solid rgba(100,100,255,0.2); border-radius:20px; max-width:700px; width:100%; max-height:85vh; overflow-y:auto; padding:32px; position:relative; }
+.modal-close { position:absolute; top:16px; right:16px; width:36px; height:36px; border-radius:50%; background:rgba(100,100,255,0.1); border:1px solid rgba(100,100,255,0.2); color:#8892b0; font-size:1.4rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+.modal-close:hover { background:rgba(239,68,68,0.2); color:#ef4444; border-color:rgba(239,68,68,0.4); }
+.modal-title { font-size:1.5rem; font-weight:700; margin-bottom:8px; color:#f0f0ff; }
+.modal-company { color:#8892b0; font-size:1rem; margin-bottom:20px; }
+.modal-section { margin-bottom:24px; }
+.modal-section-title { font-size:0.85rem; font-weight:600; color:#a5b4fc; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; }
+.modal-desc { color:#c0c0e0; line-height:1.7; font-size:0.95rem; }
+.modal-features { display:flex; flex-wrap:wrap; gap:8px; }
+.modal-feature-tag { background:rgba(100,100,255,0.1); border:1px solid rgba(100,100,255,0.2); color:#c7d2fe; padding:5px 12px; border-radius:8px; font-size:0.85rem; }
+.modal-meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+.meta-item { background:rgba(100,100,255,0.05); padding:12px; border-radius:8px; }
+.meta-label { font-size:0.75rem; color:#6b7280; margin-bottom:4px; }
+.meta-value { font-size:0.95rem; color:#e0e0ff; font-weight:500; }
+.modal-sources { display:flex; flex-wrap:wrap; gap:8px; }
+.source-link { background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); color:#60a5fa; padding:5px 12px; border-radius:6px; font-size:0.8rem; text-decoration:none; transition:all 0.2s; }
+.source-link:hover { background:rgba(59,130,246,0.2); }
+.empty-state { text-align:center; padding:60px 20px; color:#6b7280; }
+.empty-state-icon { font-size:3rem; margin-bottom:16px; opacity:0.5; }
+.empty-state-text { font-size:1.1rem; }
+footer { text-align:center; padding:40px 0 20px; color:#4b5563; font-size:0.85rem; border-top:1px solid rgba(100,100,255,0.08); margin-top:40px; }
+footer a { color:#6b7280; text-decoration:none; }
+footer a:hover { color:#a5b4fc; }
+@media (max-width:768px) { header h1 { font-size:1.6rem; } .grid-view { grid-template-columns:1fr; } .controls { flex-direction:column; align-items:stretch; } .view-toggle { margin-left:0; justify-content:center; } .data-table { font-size:0.8rem; } .data-table th,.data-table td { padding:8px 10px; } .modal { padding:20px; max-height:90vh; } .modal-meta { grid-template-columns:1fr 1fr; } }
+@media (max-width:480px) { .modal-meta { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>AI Beta Tracker</h1>
+<div class="subtitle">AI产品测试进度追踪 - 灰度测试 / 公测 / 发布倒计时</div>
+<div class="stats-bar" id="statsBar"></div>
+</header>
+<div class="controls">
+<input type="text" id="searchInput" placeholder="搜索产品、厂商、功能...">
+<select id="statusFilter">
+<option value="all">全部状态</option>
+<option value="launching_soon">即将发布</option>
+<option value="limited_beta">小范围灰度</option>
+<option value="expanded_beta">扩大灰度</option>
+<option value="public_preview">公测预览</option>
+<option value="launched">已发布</option>
+<option value="internal_alpha">内测</option>
+</select>
+<select id="companyFilter"><option value="all">全部厂商</option></select>
+<select id="categoryFilter">
+<option value="all">全部类别</option>
+<option value="Agent">AI Agent</option>
+<option value="LLM">大模型</option>
+<option value="Tool">工具</option>
+<option value="Platform">平台</option>
+</select>
+<div class="view-toggle">
+<button class="view-btn active" data-view="grid">卡片</button>
+<button class="view-btn" data-view="timeline">时间线</button>
+<button class="view-btn" data-view="table">表格</button>
+</div>
+</div>
+<div id="gridView" class="grid-view"></div>
+<div id="timelineView" class="timeline-view"></div>
+<table id="tableView" class="table-view data-table">
+<thead><tr><th>产品</th><th>厂商</th><th>状态</th><th>进度</th><th>开始/预计</th><th>全面发布</th><th>类别</th></tr></thead>
+<tbody id="tableBody"></tbody>
+</table>
+<div id="emptyState" class="empty-state" style="display:none">
+<div class="empty-state-icon">&#x1F52D;</div>
+<div class="empty-state-text">没有找到匹配的产品</div>
+</div>
+<footer>
+<div>数据来源：实时搜索追踪 - 更新于 2026-06-22</div>
+<div style="margin-top:8px"><a href="https://github.com/seanliii" target="_blank">GitHub @seanliii</a></div>
+</footer>
+</div>
+<div class="modal-overlay" id="modalOverlay">
+<div class="modal" id="modal">
+<button class="modal-close" id="modalClose">&times;</button>
+<div id="modalContent"></div>
+</div>
+</div>
+<script>
+const betaProducts=[
+{id:1,name:"微信AI助手「小微」",company:"腾讯",status:"limited_beta",startDate:"2026-06-20",expectedFullDate:"2026-Q4",progress:35,features:["聊天对话","文件总结","提醒设置","音乐推荐","自然语言生成小程序","操控微信原生功能","调起小程序"],coverage:"小范围灰度，部分用户主界面左上角可见绿色眼睛图标",platforms:["iOS","Android"],sources:["界面新闻","钛媒体","同花顺财经","华源证券","DoNews","今日头条"],sourceUrls:["https://m.toutiao.com/article/7653712496636740159/","https://m.sohu.com/a/1039238410_121956424","https://c.m.163.com/news/a/KVSOQ12D0511B8LM.html","https://m.10jqka.com.cn/20260622/c677604200.html","https://www.donews.com/news/detail/8/6602925.html"],description:"微信团队原生开发的AI助手，非第三方机器人。端午节期间（6月20日）开启灰度小范围测试。用户主界面左上角新增绿色眼睛机器人专属图标，点击或右滑即可进入对话窗口。支持聊天、文件总结、提醒设置、音乐推荐，以及通过自然语言生成小程序等功能。华源证券06-22报告建议重视灰测进度。",category:"Agent"},
+{id:2,name:"GPT-5.6",company:"OpenAI",status:"launching_soon",startDate:"2026-06-23",expectedFullDate:"2026-06-23",progress:92,features:["150万tokens上下文","mini版","标准版","Pro版","智能体编程工作流","多模态"],coverage:"全球发布",platforms:["Web","API","iOS","Android"],sources:["IT之家","格隆汇","凤凰网","testingcatalog","腾讯新闻"],sourceUrls:["https://www.ithome.com/0/966/506.htm","https://www.gelonghui.com/live/2512392","https://tech.ifeng.com/c/8u6vLpjeWsc","https://news.qq.com/rain/a/20260616A05NRO00"],description:"OpenAI新一代旗舰模型，据报最快将于6月23-28日发布。涵盖mini、标准及Pro三个版本。支持150万tokens的上下文窗口，在智能体编程工作流上有所提升。API价格仅为Claude Fable 5的竞品水平。OpenAI已向SEC提交S-1草案，为潜在IPO预留通道。",category:"LLM"},
+{id:3,name:"Claude Fable 5",company:"Anthropic",status:"launched",startDate:"2026-06-09",expectedFullDate:"2026-06-09",progress:100,features:["多模态","超长上下文","代码能力","Agent优化","安全性","推理能力"],coverage:"全球发布",platforms:["Web","API"],sources:["CSDN","钛媒体","上海证券报","AIHub","51CTO"],sourceUrls:[],description:"Anthropic于2026年6月9日发布的Claude系列最新模型。中文社区多平台深度报道（CSDN/钛媒体/上海证券报/AIHub/51CTO）。被OpenAI GPT-5.6直接对标，竞争白热化。",category:"LLM"},
+{id:4,name:"微信AI Agent全面公测",company:"腾讯",status:"launching_soon",startDate:"2026-10-01",expectedFullDate:"2026-Q4",progress:20,features:["全面公测","微信原生集成","全量用户覆盖"],coverage:"预计全量微信用户",platforms:["iOS","Android"],sources:["美银证券","智通财经","经济观察网"],sourceUrls:["https://www.zhitongcaijing.com/content/detail/1449564.html","http://www.eeo.com.cn/2026/0611/910642.shtml"],description:"美银证券研报预测，腾讯微信嵌入式AI Agent最快将于2026年Q4全面公测。目前正在测试AI支持功能的原型，最早于6月启动合规流程。多家机构认为，这是扭转腾讯市场叙事的关键催化剂。",category:"Agent"}
+];
+const statusLabels={internal_alpha:"内测",limited_beta:"小范围灰度",expanded_beta:"扩大灰度",public_preview:"公测预览",launching_soon:"即将发布",launched:"已发布"};
+const statusOrder={internal_alpha:1,limited_beta:2,expanded_beta:3,public_preview:4,launching_soon:5,launched:6};
+let currentView='grid';
+let filtered=[...betaProducts];
+function init(){populateCompanyFilter();renderStats();renderAll();bindEvents();}
+function populateCompanyFilter(){const companies=[...new Set(betaProducts.map(p=>p.company))].sort();const sel=document.getElementById('companyFilter');companies.forEach(c=>{const opt=document.createElement('option');opt.value=c;opt.textContent=c;sel.appendChild(opt);});}
+function renderStats(){const total=betaProducts.length;const launching=betaProducts.filter(p=>p.status==='launching_soon').length;const beta=betaProducts.filter(p=>p.status==='limited_beta'||p.status==='expanded_beta').length;const launched=betaProducts.filter(p=>p.status==='launched').length;const statsBar=document.getElementById('statsBar');statsBar.innerHTML=`<div class="stat-pill"><span class="num">${total}</span> 追踪产品</div><div class="stat-pill"><span class="num">${launching}</span> 即将发布</div><div class="stat-pill"><span class="num">${beta}</span> 灰度测试中</div><div class="stat-pill"><span class="num">${launched}</span> 已发布</div>`;}
+function getFiltered(){const search=document.getElementById('searchInput').value.toLowerCase().trim();const status=document.getElementById('statusFilter').value;const company=document.getElementById('companyFilter').value;const category=document.getElementById('categoryFilter').value;let result=betaProducts.filter(p=>{if(status!=='all'&&p.status!==status)return false;if(company!=='all'&&p.company!==company)return false;if(category!=='all'&&p.category!==category)return false;if(search){const text=(p.name+' '+p.company+' '+p.description+' '+p.features.join(' ')+' '+p.category).toLowerCase();return text.includes(search);}return true;});result.sort((a,b)=>{const sa=statusOrder[a.status]||0;const sb=statusOrder[b.status]||0;if(sa!==sb)return sb-sa;return new Date(b.startDate)-new Date(a.startDate);});return result;}
+function renderAll(){filtered=getFiltered();const empty=document.getElementById('emptyState');if(filtered.length===0){empty.style.display='block';document.getElementById('gridView').style.display='none';document.getElementById('timelineView').style.display='none';document.getElementById('tableView').style.display='none';return;}empty.style.display='none';if(currentView==='grid'){document.getElementById('gridView').style.display='grid';document.getElementById('timelineView').style.display='none';document.getElementById('tableView').style.display='none';renderGrid();}else if(currentView==='timeline'){document.getElementById('gridView').style.display='none';document.getElementById('timelineView').style.display='block';document.getElementById('tableView').style.display='none';renderTimeline();}else{document.getElementById('gridView').style.display='none';document.getElementById('timelineView').style.display='none';document.getElementById('tableView').style.display='table';renderTable();}}
+function renderGrid(){const grid=document.getElementById('gridView');grid.innerHTML=filtered.map(p=>`<div class="card" onclick="openModal(${p.id})"><div class="card-header"><div><div class="card-title">${p.name}</div><div class="card-company">${p.company}</div></div><span class="status-badge status-${p.status}">${statusLabels[p.status]}</span></div><div class="progress-section"><div class="progress-label"><span>测试进度</span><span>${p.progress}%</span></div><div class="progress-bar"><div class="progress-fill ${p.status}" style="width:${p.progress}%"></div></div></div><div class="features-mini">${p.features.slice(0,5).map(f=>`<span class="feature-tag">${f}</span>`).join('')}${p.features.length>5?`<span class="feature-tag">+${p.features.length-5}</span>`:''}</div><div class="card-footer"><div class="card-date"><span class="label">${p.status==='launched'?'发布':'开始'}:</span><span class="value">${p.startDate}</span></div><div class="card-date"><span class="label">全面:</span><span class="value">${p.expectedFullDate}</span></div></div></div>`).join('');}
+function renderTimeline(){const tl=document.getElementById('timelineView');tl.innerHTML=filtered.map((p,i)=>`<div class="timeline-item" onclick="openModal(${p.id})"><div class="timeline-dot ${p.status}">${i+1}</div><div class="timeline-content"><div class="tl-header"><div><div class="tl-title">${p.name}</div><div class="tl-company">${p.company} - ${statusLabels[p.status]}</div></div><span class="status-badge status-${p.status}">${statusLabels[p.status]}</span></div><div class="progress-section" style="margin:12px 0"><div class="progress-label"><span>进度</span><span>${p.progress}%</span></div><div class="progress-bar"><div class="progress-fill ${p.status}" style="width:${p.progress}%"></div></div></div><div class="features-mini">${p.features.slice(0,4).map(f=>`<span class="feature-tag">${f}</span>`).join('')}</div></div></div>`).join('');}
+function renderTable(){const tbody=document.getElementById('tableBody');tbody.innerHTML=filtered.map(p=>`<tr onclick="openModal(${p.id})"><td class="td-name">${p.name}</td><td class="td-company">${p.company}</td><td><span class="status-badge status-${p.status}">${statusLabels[p.status]}</span></td><td><div class="progress-bar" style="width:120px"><div class="progress-fill ${p.status}" style="width:${p.progress}%"></div></div> ${p.progress}%</td><td>${p.startDate}</td><td>${p.expectedFullDate}</td><td>${p.category}</td></tr>`).join('');}
+function openModal(id){const p=betaProducts.find(x=>x.id===id);if(!p)return;const content=document.getElementById('modalContent');content.innerHTML=`<div class="modal-title">${p.name}</div><div class="modal-company">${p.company} - <span class="status-badge status-${p.status}">${statusLabels[p.status]}</span></div><div class="modal-section"><div class="modal-section-title">产品描述</div><div class="modal-desc">${p.description}</div></div><div class="modal-section"><div class="modal-section-title">核心功能</div><div class="modal-features">${p.features.map(f=>`<span class="modal-feature-tag">${f}</span>`).join('')}</div></div><div class="modal-section"><div class="modal-section-title">关键信息</div><div class="modal-meta"><div class="meta-item"><div class="meta-label">测试进度</div><div class="meta-value">${p.progress}%</div></div><div class="meta-item"><div class="meta-label">开始/预计日期</div><div class="meta-value">${p.startDate}</div></div><div class="meta-item"><div class="meta-label">全面发布</div><div class="meta-value">${p.expectedFullDate}</div></div><div class="meta-item"><div class="meta-label">覆盖范围</div><div class="meta-value">${p.coverage}</div></div><div class="meta-item"><div class="meta-label">支持平台</div><div class="meta-value">${p.platforms.join(' / ')}</div></div><div class="meta-item"><div class="meta-label">类别</div><div class="meta-value">${p.category}</div></div></div></div><div class="modal-section"><div class="modal-section-title">信息来源</div><div class="modal-sources">${p.sources.map((s,idx)=>p.sourceUrls[idx]?`<a href="${p.sourceUrls[idx]}" class="source-link" target="_blank">${s}</a>`:`<span class="source-link">${s}</span>`).join('')}</div></div>`;document.getElementById('modalOverlay').classList.add('active');}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('active');}
+function bindEvents(){document.getElementById('searchInput').addEventListener('input',renderAll);document.getElementById('statusFilter').addEventListener('change',renderAll);document.getElementById('companyFilter').addEventListener('change',renderAll);document.getElementById('categoryFilter').addEventListener('change',renderAll);document.querySelectorAll('.view-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentView=btn.dataset.view;renderAll();});});document.getElementById('modalClose').addEventListener('click',closeModal);document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('modalOverlay'))closeModal();});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
